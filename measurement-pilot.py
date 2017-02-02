@@ -49,10 +49,15 @@ _interval = 1800
 _interval = 43000
 
 for _domain in target_list:
-    ping_msm.append(Ping(af=4, interval=_interval, target=_domain, description='Ping to ' + _domain))
-    traceroute_msm.append(Traceroute(af=4, interval=_interval, target=_domain, description='Traceroute to ' + _domain,
-                                     paris=_paris_no, protocol="ICMP"))
-    dns_msm.append(Dns(af=4, interval=_interval, query_class='IN', query_argument=_domain, query_type='A',
+    # ping_msm.append(Ping(af=4, interval=_interval, target=_domain, description='Ping to ' + _domain))
+    ping_msm.append(Ping(af=4, target=_domain, description='Ping to ' + _domain))
+    # traceroute_msm.append(Traceroute(af=4, interval=_interval, target=_domain, description='Traceroute to ' + _domain,
+    #                                  paris=_paris_no, protocol="ICMP"))
+    traceroute_msm.append(Traceroute(af=4, target=_domain, description='Traceroute to ' + _domain,
+                                 paris=_paris_no, protocol="ICMP"))
+    # dns_msm.append(Dns(af=4, interval=_interval, query_class='IN', query_argument=_domain, query_type='A',
+    #                    description='DNS A request for' + _domain))
+    dns_msm.append(Dns(af=4, query_class='IN', query_argument=_domain, query_type='A',
                        description='DNS A request for' + _domain))
     ssl_msm.append(
         Sslcert(af=4, interval=_interval, query_class='IN', target=_domain, description='SSL request to ' + _domain))
@@ -91,54 +96,30 @@ for cc, _request in cc_tlds.items():
     non_african_sources.append(AtlasSource(type="country", value=cc, requested=_request, tags=_tags))
 
 # african_sources_pilot = [african_sources[i] for i in range(1, len(african_sources), 500)]
-#non_african_sources_pilot = [non_african_sources[i] for i in range(0, len(non_african_sources), 10)]
+# non_african_sources_pilot = [non_african_sources[i] for i in range(0, len(non_african_sources), 10)]
 non_african_sources_pilot = [non_african_sources[6]]
 
 #############################################################################################################
 #   Creating actual request
 #############################################################################################################
-ping_request = AtlasCreateRequest(
+atlas_request = AtlasCreateRequest(
     start_time=datetime.utcnow(),
-    stop_time=datetime.utcnow() + timedelta(days=1),  # start and end times and interval need to be decided.
+    # stop_time=datetime.utcnow() + timedelta(days=1),  # start and end times and interval need to be decided.
     key=ATLAS_API_KEY,
-    measurements=ping_msm,
-    # HTTP measurements need special permissions
+    is_oneoff=True,
+    measurements=dns_msm + ping_msm + traceroute_msm,
     sources=african_sources_pilot,
 )
+# File to store the req Ids
+f = open("result", "w")
 
-traceroute_request = AtlasCreateRequest(
-    start_time=datetime.utcnow(),
-    stop_time=datetime.utcnow() + timedelta(days=1),  # start and end times and interval need to be decided.
-    key=ATLAS_API_KEY,
-    measurements=traceroute_msm,
-    # HTTP measurements need special permissions
-    sources=african_sources_pilot,
-)
-
-dns_request = AtlasCreateRequest(
-    start_time=datetime.utcnow(),
-    stop_time=datetime.utcnow() + timedelta(days=1),  # start and end times and interval need to be decided.
-    key=ATLAS_API_KEY,
-    measurements=dns_msm,
-    # HTTP measurements need special permissions
-    sources=african_sources_pilot,
-)
-
-
-(is_success, response) = ping_request.create()
+(is_success, response) = atlas_request.create()
 while is_success is not True:
-    print("Ping request was not successful. Trying again!")
-    (is_success, response) = ping_request.create()
-print("Ping request Successful! Response - " + str(response))
+    print("Requests were not successful. " + str(response))
+    print("Trying again!")
+    (is_success, response) = atlas_request.create()
+print("Request Successful! Response - " + str(response))
+f.write(str(response['measurements']) + "\n")
 
-(is_success, response) = traceroute_request.create()
-while is_success is not True:
-    print("Traceroute request was not successful. Trying again!")
-    (is_success, response) = traceroute_request.create()
-print("Traceroute request Successful! Response - " + str(response))
-
-(is_success, response) = dns_request.create()
-while is_success is not True:
-    print("DNS request was not successful. Trying again!")
-    (is_success, response) = dns_request.create()
-print("DNS request Successful! Response - " + str(response))
+# Close the result file
+f.close()
