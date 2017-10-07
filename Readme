@@ -1,0 +1,45 @@
+# Readme and Instructions for AIMO Project
+
+
+This is a readme document aimed at explaining the directory structure and code flow the scripts in the AIMO project.
+
+# Workflow
+The current workflow for the AIMO project is-
+
+## 1. Starting measurements for domains-
+	The first step in the process is to collect measurements of various types (ping, dns, traceroute, ssl etc). These measurements can be collected using the front end as well as using RESTAPIs. We collect the measurements for all the domains available to us in the subdomain.txt. Based on the number of measurements, we chose the RESTAPI way since it is more scalable.
+
+	Probe Selection- To start a measurement we need to specify the number of probes. The first implementation of this project simply selects all the probes available in a country. This is unnecessary as it takes a lot of time to collect data from all the probes and also it uses up a lot of credits. The second approach tries to find out the probes in each country that can be used to collect the data for all the domains. This is a recursive process and we know this list of probes only by running the measurements once and then selecting only the probes that were able to reach all the domains in a particular country.
+
+	For the purpose of this project, we will only collect the ping, traceroute and dns type of measurements. For the purposes of collecting the results, we save all the measurement ids in a file.
+
+## 2. Collecting the results for the measurements-
+	Once we have all the measurement ids, we use the REST APIs provided by the RIPE ATLAS to collect the results of the measurements. We collect the result and create a pickle object and dump it into files (separately for ping, dns and traceroute).
+
+
+# Code Structure-
+
+Some of the code is redundant and can be removed. The RIPE atlas infra is not stable to automate everything. But after trial and error we can consolidate may of these scripts into one.
+
+The home directory is names as AIMO and has the following useful scripts and files-
+
+AIMO
+ |- data/ - ** Contains all the data files. **
+ 	|- new_data/ - ** Contains the latest data files. **
+ 		|- *_data- pickle file with data (ping, traceroute, dns)
+ 		|- countrywise_*.json- JSON file with format- {country: {domain: [probeid1, pribeid2, ..]}
+ 		|- intersected_countrywise_*.json- JSON file with countries and probes common for all the domains. Format {country: [probeid1, probeid2, ..]}
+ 		|- all_three_intersection.json- JSON file with country code and probes common for all the domains across measurements. same format as above.
+ 		|- per_country_ds.py- script to generate the intersected files for each type and then generate the intersection of all three to generate all_three_intersection.json.
+ |- resources/
+ 	|- Contains the resources (files with probe informations, domains, subdomains etc)
+ |- fresh_ping_usa/
+ 	|- direcrory with the latest ping results
+ 	|- Contains the script to trigger measurement and collect data from the measurement IDs in one place. This folder can be treated as a reference for the workflow.
+ |- fresh_dns_usa/
+ 	|- directory with the latest dns results. Same as the ping dir.
+
+These scripts and data files are sufficient to get a good understanding of the data and the workflow. The top level folder contains a few other scripts as well which are mostly redundant but can be referenced.
+	|- measurement.py and measurement-pilot.py: These two scripts have the basic code to set up the infrastructure and fire measurements in one place. It can be handy for references.
+
+Apart from these files, most of the files are helpers used at some point and temporary results generated. The main goal should be to understand and unify the workflow in one place and remove the temporary scripts and intermediate data.
